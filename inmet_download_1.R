@@ -39,7 +39,7 @@ return_urls_inmet_download <- function(years) {
 }
 
 # Name         : Download INMET files
-# Description  : download raw zip INMET files (by year) and save them at dir_path
+# Description  : download raw zip INMET files by year and save them at dir_path
 # Written by   : Rodrigo Lustosa
 # Writing date : 17 Jan 2023 17:18 (GMT -03)
 download_inmet_files <- function(years,dir_path) {
@@ -48,6 +48,9 @@ download_inmet_files <- function(years,dir_path) {
   files_names <- str_c(years,".zip")
   urls        <- return_urls_inmet_download(years)
   path <- file.path(dir_path, files_names)
+  # create folder if it does not exist
+  if (!file.exists(dir_input))
+    dir.create(dir_input)
   # download each file
   for (i in 1:n_files) {
     message(str_c("Downloading year ",years[i]))
@@ -61,6 +64,10 @@ download_inmet_files <- function(years,dir_path) {
 
 # data information --------------------------------------------------------
 
+# directories
+dir_input  <- file.path(dir_data,dir_data_input)
+dir_output <- file.path(dir_data,dir_data_output)
+
 # years to download
 year_start <- year(date_start)
 year_end   <- year(date_end)
@@ -68,8 +75,9 @@ year_end   <- year(date_end)
 
 # download data -----------------------------------------------------------
 
-dir_input <- file.path(dir_data,dir_data_input)
 download_inmet_files(year_start:year_end,dir_input)
 
 
+# extract files basic info ------------------------------------------------
 
+# path <- file.path(dir)
