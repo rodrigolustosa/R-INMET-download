@@ -1,7 +1,7 @@
 # ---------------------------------------------------------------------------- #
 # Name         : INMET Download (1)
 # Description  : Download meteorological data from the Instituto Nacional de 
-# Meteorologia (IMNET) using the url <portal.inmet.gov.br/dadoshistoricos>.
+# Meteorologia (IMNET) using the url https://portal.inmet.gov.br/dadoshistoricos
 # Written by   : Rodrigo Lustosa
 # Writing date : 16 Jan 2023 12:04 (GMT -03)
 # Note:        : At this url, data is divided by year. Data from every station
@@ -27,6 +27,10 @@ file_output <- "inmet.csv"
 # data information
 date_start <- ymd_hm("2018-01-01 00:00")
 date_end   <- ymd_hm("2022-01-01 00:00")
+
+# code stations to be used. If empty, all stations will be selected
+# for more IDs, check: https://mapas.inmet.gov.br/
+stations_id <- c("A701","A755","A771")
 
 
 # functions ---------------------------------------------------------------
@@ -130,9 +134,19 @@ for(k in 1:n_years){
     filenames             <- allzipfiles$Name
   }
   
+  # extract station ids for each file
+  codigos <- str_match(filenames,
+                       "[a-zA-Z]+_[A-Z]{1,2}_[A-Z]{1,2}_([a-zA-Z\\d]{4,6})_.*")
+  codigos <- codigos[,2]
+  
   n_files <- length(filenames)
   dados[[k]] <- vector("list",n_files)
-  for (f in 1:n_files){
+  # only stations that are required
+  if(is.null(stations_id))
+    fs <- 1:n_files else # all stations were required (implicit by empty ids)
+      fs <- which(codigos %in% stations_id) # required stations were given
+  
+  for (f in fs){
     # unzip file f in temporary directory
     file_unziped <- unzip(path,filenames_with_zipdir[f],
                           exdir = dir_temp,junkpaths = T)
@@ -174,7 +188,6 @@ for(k in 1:n_years){
     # insert header
     names(dados[[k]][[f]]) <- csv_header
     
-    
     # tidy and filter data
     dados[[k]][[f]] <- dados[[k]][[f]] %>% 
       select(- "") %>% # remove empty column
@@ -185,7 +198,6 @@ for(k in 1:n_years){
   }
   # merge dataframes from year y
   dados[[k]] <- bind_rows(dados[[k]])
-  
 }
 
 # merge all dataframes
