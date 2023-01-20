@@ -22,6 +22,7 @@ dir_data <- "banco_de_dados"
 dir_data_input  <- "raw"
 dir_data_output <- "output"
 dir_data_temp   <- "temp"
+file_output <- "inmet.csv"
 
 # data information
 date_start <- ymd_hm("2018-01-01 00:00")
@@ -190,3 +191,11 @@ for(k in 1:n_years){
 # merge all dataframes
 dados <- bind_rows(dados)
 
+# create folder if it does not exist
+if (!file.exists(dir_output))
+  dir.create(dir_output)
+# free up unused memory
+gc()
+# write data
+path <- file.path(dir_output, file_output)
+write_csv(dados,path,na = "")
