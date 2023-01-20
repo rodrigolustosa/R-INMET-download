@@ -24,8 +24,8 @@ dir_data_output <- "output"
 dir_data_temp   <- "temp"
 
 # data information
-date_start <- ymd("2018-01-01")
-date_end   <- ymd("2022-01-01")
+date_start <- ymd_hm("2018-01-01 00:00")
+date_end   <- ymd_hm("2022-01-01 00:00")
 
 
 # functions ---------------------------------------------------------------
@@ -97,62 +97,96 @@ dir_temp   <- file.path(dir_data,dir_data_temp)
 # years to download
 year_start <- year(date_start)
 year_end   <- year(date_end)
+all_years <- year_start:year_end
 
 
 # download data -----------------------------------------------------------
 
-download_inmet_files(year_start:year_end,dir_input)
+download_inmet_files(all_years,dir_input)
 
 
-# read one file -----------------------------------------------------------
+# read files --------------------------------------------------------------
 
-path <- file.path(dir_input, str_c(year_start,".zip"))
-allzipfiles <- unzip(path, list=TRUE)
-# extract data files names and address inside zip file
-if(a$Length[1] == 0){
-  zipfolder             <- allzipfiles$Name[1]
-  filenames_with_zipdir <- allzipfiles$Name[-1]
-  filenames             <- str_remove(filenames_with_zipdir,zipfolder)
-}else{
-  zipfolder <- ""
-  filenames_with_zipdir <- a$Name
-  filenames             <- a$Name
-}
-
-
-# unzip one file in temporary directory
-file_unziped <- unzip(path,filenames_with_zipdir[1],
-                      exdir = dir_temp,junkpaths = T)
-
-# read first lines, with basic info
-con <- file(file_unziped,encoding = "ISO-8859-15") 
-first_lines <- readLines(con,9)
-close(con)
-
-# extract raw station basic info and raw dataframe header
-basic_info <- first_lines[-9]
-csv_header <- first_lines[ 9]
-
-# tidy basic info
-basic_info <- str_split(basic_info,":;")
-n_basic_info <- length(basic_info)
-for (i in 1:n_basic_info) {
-  names(basic_info)[i] <- basic_info[[i]][1]
-  basic_info[[i]]      <- basic_info[[i]][2]
-}
-names(basic_info) <- rm.complex.format(names(basic_info))
-
-# tidy header
-csv_header <- str_split(csv_header,";")[[1]]
-csv_header <- rm.complex.format(csv_header)
-
-# read data
-dados <- read.csv2(file_unziped, header = F, skip = 9, na.strings = "-9999",
-                   fileEncoding = "ISO-8859-15") 
-
-# insert header
-names(dados) <- csv_header
+n_years <- length(all_years)
+dados   <- vector("list",n_years) 
+for(k in 1:n_years){
+  # select year
+  y <- all_years[k]
+  # zip file path
+  path <- file.path(dir_input, str_c(y,".zip"))
+  # extract all file and directory names inside zip
+  allzipfiles <- unzip(path, list=TRUE)
+  # separate file and directory names
+  if(allzipfiles$Length[1] == 0){
+    # case where data is inside a directory (length zero and first of the list)
+    zipfolder             <- allzipfiles$Name[1]
+    filenames_with_zipdir <- allzipfiles$Name[-1]
+    filenames             <- str_remove(filenames_with_zipdir,zipfolder)
+  }else{
+    # case where data is not inside a directory
+    zipfolder <- ""
+    filenames_with_zipdir <- allzipfiles$Name
+    filenames             <- allzipfiles$Name
+  }
   
-# remove unzipped file
-file.remove(file_unziped)
+  n_files <- length(filenames)
+  dados[[k]] <- vector("list",n_files)
+  for (f in 1:n_files){
+    # unzip file f in temporary directory
+    file_unziped <- unzip(path,filenames_with_zipdir[f],
+                          exdir = dir_temp,junkpaths = T)
+    
+    # read first lines, with basic info
+    con <- file(file_unziped,encoding = "ISO-8859-15") 
+    first_lines <- readLines(con,9)
+    close(con)
+    # read data
+    dados[[k]][[f]] <- read.csv2(file_unziped, skip = 9, na.strings = "-9999",
+                                 header = F, fileEncoding = "ISO-8859-15") 
+    # delete unzipped file
+    file.remove(file_unziped)
+    
+    # extract raw station basic info and raw dataframe header
+    basic_info <- first_lines[-9]
+    csv_header <- first_lines[ 9]
+    
+    # tidy basic info
+    basic_info <- str_split(basic_info,":;")
+    n_basic_info <- length(basic_info)
+    for (i in 1:n_basic_info) {
+      names(basic_info)[i] <- basic_info[[i]][1]
+      basic_info[[i]]      <- basic_info[[i]][2]
+    }
+    names(basic_info) <- rm.complex.format(names(basic_info))
+    # correct cases where files were already incorrect
+    names(basic_info)[which(names(basic_info) == "regio")]  <- "regiao"
+    names(basic_info)[which(names(basic_info) == "estaco")] <- "estacao"
+    names(basic_info)[which(names(basic_info) == "data_de_fundaco")] <- 
+      "data_de_fundacao"
+    
+    # tidy header
+    csv_header <- str_split(csv_header,";")[[1]]
+    csv_header <- rm.complex.format(csv_header)
+    # change hour column name to be equal for all files
+    csv_header[which(csv_header == "hora_utc")]  <- "hora"
+    
+    # insert header
+    names(dados[[k]][[f]]) <- csv_header
+    
+    
+    # tidy and filter data
+    dados[[k]][[f]] <- dados[[k]][[f]] %>% 
+      select(- "") %>% # remove empty column
+      mutate(data = ymd_hm(paste(data, hora)),.keep="unused") %>% # merge date and hours
+      mutate(codigo = basic_info$codigo, .before = 1) %>% 
+      filter(data >= date_start & data <= date_end)
+    
+  }
+  # merge dataframes from year y
+  dados[[k]] <- bind_rows(dados[[k]])
+  
+}
+
+# merge all dataframes
+dados <- bind_rows(dados)
 
