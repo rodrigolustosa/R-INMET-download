@@ -44,11 +44,11 @@ return_urls_inmet_download <- function(years) {
   return(str_c(url_prefix,years,url_posfix))
 }
 
-# Name         : Download INMET files
+# Name         : Download INMET files (1)
 # Description  : download raw zip INMET files by year and save them at dir_path
 # Written by   : Rodrigo Lustosa
 # Writing date : 17 Jan 2023 17:18 (GMT -03)
-download_inmet_files <- function(years,dir_path) {
+download_inmet_files_1 <- function(years,dir_path) {
   # basic info
   n_files     <- length(years)
   files_names <- str_c(years,".zip")

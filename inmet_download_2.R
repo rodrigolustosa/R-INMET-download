@@ -19,66 +19,149 @@ dir_data_output <- "database/output"
 dir_data_temp   <- "database/temp"
 file_output <- "02_inmet.csv"
 
+
+# functions ---------------------------------------------------------------
+
+# Name         : Is Path Absolute
+# Description  : Check if a path is absolute or relative (checked for Linux)
+# Written by   : Rodrigo Lustosa
+# Writing date : 25 Jan 2023 12:43 (GMT -03)
+is.path.abs <- function(path){
+  if (Sys.info()['sysname'] == "Linux"){
+    # for Linux
+    first_string <- substr(path,1,1)
+    if (first_string == "/" | first_string == "~")
+      return(TRUE)
+  } else {
+    # for Windows
+    return(stringr::str_detect(path,":/"))
+  }
+  return(FALSE)
+}
+
+# Name         : Wait INMET page to load
+# Description  : Search forS date boxes to know if page is loaded or not
+# Written by   : Rodrigo Lustosa
+# Writing date : 25 Jan 2023 12:57 (GMT -03)
+wait_inmet_page_to_load <- function(remote_driver){
+  el_test <- list()
+  el_test <- remote_driver$findElements(using = "css", "[type = 'date']")
+  while(is_empty(el_test)){
+    Sys.sleep(1)
+    el_test <- remote_driver$findElements(using = "css", "[type = 'date']")
+  }
+}
+
+# Name         : Open Docker
+# Description  : Open a docker with Selenium 2.53.1, firefox as browser and a 
+# connection with dir_path
+# Written by   : Rodrigo Lustosa
+# Writing date : 25 Jan 2023 14:31 (GMT -03)
+open_docker <- function(dir_path) {
+  # alternative in the terminal (replace DIR_DATA_INPUT, must be absolute path):
+  # sudo docker run -d -p 4445:4444 -v DIR_DATA_INPUT:/home/seluser/Downloads:rw -d selenium/standalone-firefox:2.53.1
+  
+  # create folder if it does not exist
+  if (!file.exists(dir_path))
+    dir.create(dir_path)
+  
+  # force path to be absolute
+  dir_path <- ifelse(is.path.abs(dir_path),dir_path,file.path(getwd(),dir_path))
+  
+  # terminal command
+  cmd <- str_c("sudo -kS docker run -d -p 4445:4444 -v ", dir_path,
+               ":/home/seluser/Downloads:rw -d selenium/standalone-firefox:2.53.1")
+  
+  # start docker
+  docker_id <- system(cmd, intern = TRUE,
+                      input=rstudioapi::askForPassword("Enter your password: "))
+  
+  # time for the docker to settle down
+  Sys.sleep(1)
+  
+  return(docker_id)
+}
+
+# Name         : Close docker
+# Description  : Close docker with docker_id as ID
+# Written by   : Rodrigo Lustosa
+# Writing date : 25 Jan 2023 14:37 (GMT -03)
+close_docker <- function(docker_id) {
+  # close docker
+  # sudo docker stop $(sudo docker ps -q)
+  system(paste("sudo -kS docker stop", substr(docker_id,0,12)),
+         input=rstudioapi::askForPassword("Enter your password: "))
+}
+
+# Name         : Download INMET files (2)
+# Description  : download raw INMET files by station and save them at dir_path
+# Written by   : Rodrigo Lustosa
+# Writing date : 
+download_inmet_files_2 <- function(years,dir_path){
+  
+  # set docker download information
+  fprof <- makeFirefoxProfile(
+    list(browser.download.dir = "/home/seluser/Downloads",
+         browser.download.folderList = 2L,
+         browser.download.manager.showWhenStarting = FALSE,
+         browser.helperApps.neverAsk.saveToDisk = "text/csv"))
+
+  # start remote Driver
+  remDr <- remoteDriver(
+    remoteServerAddr = "localhost",
+    port = 4445L,
+    browserName = "firefox",
+    extraCapabilities = fprof
+  )
+  remDr$open(silent = T)
+  # remDr$getStatus()
+
+  # open URL
+  remDr$navigate("https://tempo.inmet.gov.br/tabela/mapa/V0500/2023-01-01")
+  # remDr$refresh()
+
+  wait_inmet_page_to_load(remDr)
+
+  # remDr$screenshot(display = TRUE)
+
+  # find date boxes (start and end)
+  el_datas <- remDr$findElements(using = "css", "[type = 'date']")
+
+  # list of backspace keys equal to number of characters in a date string
+  erase_date_keys        <- as.list(rep("backspace",10))
+  names(erase_date_keys) <- rep("key",10)
+  # erase past date values and fill new dates
+  el_datas[[1]]$sendKeysToElement(append(erase_date_keys, list("2022-01-01")))
+  el_datas[[2]]$sendKeysToElement(append(erase_date_keys, list("2022-12-31")))
+
+  # remDr$screenshot(display = TRUE)
+
+  # find button to generate new table and click on it
+  el_gtabela <- remDr$findElement(using = "tag name", "button")
+  el_gtabela$clickElement()
+  # el_gtabela$getElementText()  # "Gerar Tabela"
+
+  wait_inmet_page_to_load(remDr)
+
+  # remDr$screenshot(display = TRUE)
+
+  # find button to download new generated table and click on it
+  el_bCSV <- remDr$findElement(using = "tag name", "a")
+  el_bCSV$clickElement()
+  # el_bCSV$getElementText()  # "Baixar CSV"
+
+  # close remote driver
+  remDr$close()
+
+  
+}
+
+
+# docker ------------------------------------------------------------------
+
 # start docker
-# sudo docker run -d -p 4445:4444 -v /WORKING/DIRECTORY:/home/seluser/Downloads:rw -d selenium/standalone-firefox:2.53.1
-cmd <- str_c("sudo -kS docker run -d -p 4445:4444 -v ", getwd(),
-             ":/home/seluser/Downloads:rw -d selenium/standalone-firefox:2.53.1")
-docker_id <- system(cmd, intern = TRUE,
-                    input=rstudioapi::askForPassword("Enter your password: "))
+docker_id <- open_docker(dir_data_input)
 
-# set docker download information
-fprof <- makeFirefoxProfile(
-  list(browser.download.dir = "/home/seluser/Downloads",
-       browser.download.folderList = 2L,
-       browser.download.manager.showWhenStarting = FALSE,
-       browser.helperApps.neverAsk.saveToDisk = "multipart/x-zip,application/zip,application/x-zip-compressed,application/x-compressed,application/msword,application/csv,text/csv,image/png ,image/jpeg, application/pdf, text/html,text/plain,  application/excel, application/vnd.ms-excel, application/x-excel, application/x-msexcel, application/octet-stream"))
+download_inmet_files_2(NULL,dir_data_input)
 
-# start remote Driver
-remDr <- remoteDriver(
-  remoteServerAddr = "localhost",
-  port = 4445L,
-  browserName = "firefox",
-  extraCapabilities = fprof
-)
-remDr$open()
-remDr$getStatus()
-
-# open URL
-remDr$navigate("https://tempo.inmet.gov.br/tabela/mapa/V0500/2023-01-01")
-# remDr$refresh()
-
-remDr$screenshot(display = TRUE)
-
-# find date boxes (start and end)
-el_datas <- remDr$findElements(using = "css", "[type = 'date']")
-# list of backspace keys equal to number of characters in a date string
-erase_date_keys        <- as.list(rep("backspace",10))
-names(erase_date_keys) <- rep("key",10)
-# erase past date values and fill new dates 
-el_datas[[1]]$sendKeysToElement(append(erase_date_keys, list("2022-01-01")))
-el_datas[[2]]$sendKeysToElement(append(erase_date_keys, list("2022-12-31")))
-
-remDr$screenshot(display = TRUE)
-
-# find button to generate new table and click on it
-el_gtabela <- remDr$findElement(using = "tag name", "button")
-el_gtabela$clickElement()
-# el_gtabela$getElementText()  # "Gerar Tabela"
-
-remDr$screenshot(display = TRUE)
-
-# find button to download new generated table and click on it
-el_bCSV <- remDr$findElement(using = "tag name", "a")
-el_bCSV$clickElement()
-# el_bCSV$getElementText()  # "Baixar CSV"
-
-remDr$refresh()
-
-# close remote driver
-remDr$close()
-
-# close docker
-# sudo docker stop $(sudo docker ps -q)
-system(paste("sudo -kS docker stop", substr(docker_id,0,12)), intern = TRUE,
-       input=rstudioapi::askForPassword("Enter your password: "))
-
+close_docker(docker_id) 
