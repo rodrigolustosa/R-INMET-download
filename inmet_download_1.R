@@ -1,5 +1,5 @@
 # ---------------------------------------------------------------------------- #
-# Name         : INMET Download (1)
+# Name         : R INMET Download (1)
 # Description  : Download meteorological data from the Instituto Nacional de 
 # Meteorologia (IMNET) using the url https://portal.inmet.gov.br/dadoshistoricos
 # Written by   : Rodrigo Lustosa

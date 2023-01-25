@@ -1,5 +1,5 @@
 # ---------------------------------------------------------------------------- #
-# Name         : INMET Download (2)
+# Name         : R INMET Download (2)
 # Description  : Download meteorological data from the Instituto Nacional de 
 # Meteorologia (IMNET) using the url https://mapas.inmet.gov.br/#
 # Written by   : Rodrigo Lustosa
