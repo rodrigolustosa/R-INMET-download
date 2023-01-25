@@ -23,9 +23,9 @@ dir_data_output <- "database/output"
 dir_data_temp   <- "database/temp"
 file_output <- "01_inmet.csv"
 
-# data information
-date_start <- ymd_hm("2018-01-01 00:00")
-date_end   <- ymd_hm("2022-01-01 00:00")
+# date and hour information
+date_hour_start <- ymd_hm("2018-01-01 00:00")
+date_hour_end   <- ymd_hm("2022-01-01 00:00")
 
 # code stations to be used. If empty, all stations will be selected
 # for more IDs, check: https://mapas.inmet.gov.br/
@@ -94,8 +94,8 @@ rm.complex.format <- function(string){
 # data information --------------------------------------------------------
 
 # years to download
-year_start <- year(date_start)
-year_end   <- year(date_end)
+year_start <- year(date_hour_start)
+year_end   <- year(date_hour_end)
 all_years  <- year_start:year_end
 
 
@@ -187,7 +187,7 @@ for(k in 1:n_years){
       select(- "") %>% # remove empty column
       mutate(data = ymd_hm(paste(data, hora)),.keep="unused") %>% # merge date and hours
       mutate(codigo = basic_info$codigo, .before = 1) %>% 
-      filter(data >= date_start & data <= date_end)
+      filter(data >= date_hour_start & data <= date_hour_end)
     
   }
   # merge dataframes from year y
