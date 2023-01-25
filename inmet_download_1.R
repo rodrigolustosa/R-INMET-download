@@ -18,11 +18,10 @@ library(lubridate)
 library(RCurl)
 
 # directory and file names
-dir_data <- "banco_de_dados"
-dir_data_input  <- "raw"
-dir_data_output <- "output"
-dir_data_temp   <- "temp"
-file_output <- "inmet.csv"
+dir_data_input  <- "database/aux/zip_files_yearly_and_allstations"
+dir_data_output <- "database/output"
+dir_data_temp   <- "database/temp"
+file_output <- "01_inmet.csv"
 
 # data information
 date_start <- ymd_hm("2018-01-01 00:00")
@@ -56,8 +55,8 @@ download_inmet_files <- function(years,dir_path) {
   urls        <- return_urls_inmet_download(years)
   path <- file.path(dir_path, files_names)
   # create folder if it does not exist
-  if (!file.exists(dir_input))
-    dir.create(dir_input)
+  if (!file.exists(dir_data_input))
+    dir.create(dir_data_input)
   # download each file
   for (i in 1:n_files) {
     message(str_c("Downloading year ",years[i]))
@@ -94,20 +93,15 @@ rm.complex.format <- function(string){
 
 # data information --------------------------------------------------------
 
-# directories
-dir_input  <- file.path(dir_data,dir_data_input)
-dir_output <- file.path(dir_data,dir_data_output)
-dir_temp   <- file.path(dir_data,dir_data_temp)
-
 # years to download
 year_start <- year(date_start)
 year_end   <- year(date_end)
-all_years <- year_start:year_end
+all_years  <- year_start:year_end
 
 
 # download data -----------------------------------------------------------
 
-download_inmet_files(all_years,dir_input)
+download_inmet_files(all_years,dir_data_input)
 
 
 # read files --------------------------------------------------------------
@@ -118,7 +112,7 @@ for(k in 1:n_years){
   # select year
   y <- all_years[k]
   # zip file path
-  path <- file.path(dir_input, str_c(y,".zip"))
+  path <- file.path(dir_data_input, str_c(y,".zip"))
   # extract all file and directory names inside zip
   allzipfiles <- unzip(path, list=TRUE)
   # separate file and directory names
@@ -149,7 +143,7 @@ for(k in 1:n_years){
   for (f in fs){
     # unzip file f in temporary directory
     file_unziped <- unzip(path,filenames_with_zipdir[f],
-                          exdir = dir_temp,junkpaths = T)
+                          exdir = dir_data_temp,junkpaths = T)
     
     # read first lines, with basic info
     con <- file(file_unziped,encoding = "ISO-8859-15") 
@@ -204,10 +198,10 @@ for(k in 1:n_years){
 dados <- bind_rows(dados)
 
 # create folder if it does not exist
-if (!file.exists(dir_output))
-  dir.create(dir_output)
+if (!file.exists(dir_data_output))
+  dir.create(dir_data_output)
 # free up unused memory
 gc()
 # write data
-path <- file.path(dir_output, file_output)
+path <- file.path(dir_data_output, file_output)
 write_csv(dados,path,na = "")

@@ -14,6 +14,10 @@ library(RSelenium)
 library(stringr)
 
 # directory and file names
+dir_data_input  <- "database/aux/csv_files_by_station_and_period"
+dir_data_output <- "database/output"
+dir_data_temp   <- "database/temp"
+file_output <- "02_inmet.csv"
 
 # start docker
 # sudo docker run -d -p 4445:4444 -v /WORKING/DIRECTORY:/home/seluser/Downloads:rw -d selenium/standalone-firefox:2.53.1
