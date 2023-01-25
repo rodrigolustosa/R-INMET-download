@@ -58,8 +58,8 @@ wait_inmet_page_to_load <- function(remote_driver){
 }
 
 # Name         : Open Docker
-# Description  : Open a docker with Selenium 2.53.1, firefox as browser and a 
-# connection with dir_path
+# Description  : Open a docker with Selenium 2.53.1, firefox as browser, a 
+# connection with dir_path, and with name rselenium_inmet
 # Written by   : Rodrigo Lustosa
 # Writing date : 25 Jan 2023 14:31 (GMT -03)
 open_docker <- function(dir_path) {
@@ -74,7 +74,8 @@ open_docker <- function(dir_path) {
   dir_path <- ifelse(is.path.abs(dir_path),dir_path,file.path(getwd(),dir_path))
   
   # terminal command
-  cmd <- str_c("sudo -kS docker run -d -p 4445:4444 -v ", dir_path,
+  cmd <- str_c("sudo -kS docker run --name rselenium_inmet -d -p 4445:4444 -v ",
+               dir_path, # path of connection in the host with docker
                ":/home/seluser/Downloads:rw -d selenium/standalone-firefox:2.53.1")
   
   # start docker
@@ -84,17 +85,17 @@ open_docker <- function(dir_path) {
   # time for the docker to settle down
   Sys.sleep(1)
   
-  return(docker_id)
+  # return(docker_id)
 }
 
 # Name         : Close docker
-# Description  : Close docker with docker_id as ID
+# Description  : Close docker named as rselenium_inmet
 # Written by   : Rodrigo Lustosa
 # Writing date : 25 Jan 2023 14:37 (GMT -03)
 close_docker <- function(docker_id) {
   # close docker
   # sudo docker stop $(sudo docker ps -q)
-  system(paste("sudo -kS docker stop", substr(docker_id,0,12)),
+  system("sudo -kS docker stop rselenium_inmet",
          input=rstudioapi::askForPassword("Enter your password: "))
 }
 
@@ -124,7 +125,7 @@ divide_date_period <- function(date_start, date_end, largest_period = 366){
 # Name         : Download INMET files (2)
 # Description  : download raw INMET files by station and save them at dir_path
 # Written by   : Rodrigo Lustosa
-# Writing date : 
+# Writing date : 25 Jan 2023
 download_inmet_files_2 <- function(date_start,date_end,dir_download){
   
   # dates information
@@ -216,9 +217,9 @@ date_end   <- date(date_hour_end)
 # download files ----------------------------------------------------------
 
 # start docker
-docker_id <- open_docker(dir_data_input)
+open_docker(dir_data_input)
 
 download_inmet_files_2(date_start,date_end,dir_data_input)
 
-close_docker(docker_id)
+close_docker()
 
