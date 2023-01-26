@@ -11,10 +11,10 @@
 
 # packages
 library(tidyverse)
-library(RSelenium)
 library(stringr)
 library(stringi)
 library(lubridate)
+library(RSelenium)
 
 # directory and file names
 dir_data_input  <- "database/aux/csv_files_by_station_and_period"
