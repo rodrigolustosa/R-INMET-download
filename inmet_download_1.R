@@ -99,7 +99,7 @@ year_end   <- year(date_hour_end)
 all_years  <- year_start:year_end
 
 
-# download data -----------------------------------------------------------
+# download files ----------------------------------------------------------
 
 download_inmet_files(all_years,dir_data_input)
 
@@ -197,6 +197,9 @@ for(k in 1:n_years){
 # merge all dataframes
 dados <- bind_rows(dados)
 
+
+# write final file --------------------------------------------------------
+
 # create folder if it does not exist
 if (!file.exists(dir_data_output))
   dir.create(dir_data_output)
@@ -205,3 +208,4 @@ gc()
 # write data
 path <- file.path(dir_data_output, file_output)
 write_csv(dados,path,na = "")
+

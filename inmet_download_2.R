@@ -2,6 +2,7 @@
 # Name         : R INMET Download (2)
 # Description  : Download meteorological data from the Instituto Nacional de 
 # Meteorologia (IMNET) using the url https://mapas.inmet.gov.br/#
+# Example URL  : https://tempo.inmet.gov.br/tabela/mapa/A701/2022-01-01
 # Written by   : Rodrigo Lustosa
 # Writing date : 19 Jan 2023 17:23 (GMT -03)
 # ---------------------------------------------------------------------------- #
@@ -12,6 +13,7 @@
 library(tidyverse)
 library(RSelenium)
 library(stringr)
+library(stringi)
 library(lubridate)
 
 # directory and file names
@@ -30,6 +32,29 @@ station_ids <- c("A701","A755","A771","V0500")
 
 
 # functions ---------------------------------------------------------------
+
+# Name         : Remove complex format
+# Description  : Remove all symbols that are not proper for a header or 
+# something related
+# Written by   : Rodrigo Lustosa
+# Writing date : 19 Jan 2023 15:43 (GMT -03)
+rm.complex.format <- function(string){
+  # remove accents and other complex symbols
+  new_string <- stri_trans_general(string, "Latin-ASCII")
+  # remove characters inside parenthesis
+  new_string <- str_remove_all(new_string,"\\(.*\\)")
+  # remove spaces after and before string
+  new_string <- str_trim(new_string)
+  # replace spaces by underline
+  new_string <- str_replace_all(new_string," ","_")
+  # change upper to lower case
+  new_string <- str_to_lower(new_string)
+  # remove all other characters that aren't letters, digits or underline
+  new_string <- str_remove_all(new_string,"[^a-zA-Z0-9_\\s]")
+  # replace repeated underlines by a single underline
+  new_string <- str_replace_all(new_string,"_+","_")
+  return(new_string)
+}
 
 # Name         : Is Path Absolute
 # Description  : Check if a path is absolute or relative (checked for Linux)
@@ -93,13 +118,13 @@ open_docker <- function(dir_path) {
 }
 
 # Name         : Close docker
-# Description  : Close docker named as rselenium_inmet
+# Description  : Stop and remove docker named as rselenium_inmet
 # Written by   : Rodrigo Lustosa
 # Writing date : 25 Jan 2023 14:37 (GMT -03)
 close_docker <- function(docker_id) {
   # close docker
   # sudo docker stop $(sudo docker ps -q)
-  system("sudo -kS docker stop rselenium_inmet",
+  system("sudo -S docker stop rselenium_inmet; sudo -S docker rm rselenium_inmet",
          input=rstudioapi::askForPassword("Enter your password: "))
 }
 
@@ -126,8 +151,37 @@ divide_date_period <- function(date_start, date_end, largest_period = 366){
   }
 }
 
+# Name         : Make file name
+# Description  : Use station id, data date start and date end to make a file
+# name
+# Written by   : Rodrigo Lustosa
+# Writing date : 26 Jan 2023 10:37 (GMT -03)
+make_file_name <- function(id,date_start,date_end){
+  # file name for station and period
+  file_name <- str_c(id,"_",                              # station code
+                     "s",format(date_start,"%Y%m%d"),"_", # date start
+                     "e",format(date_end,"%Y%m%d"),       # date end
+                     ".csv")                              # file extension
+}
+
+# Name         : Wait file to download
+# Description  : Follow size file changes until it stop changing
+# Written by   : Rodrigo Lustosa
+# Writing date : 26 Jan 2023 11:53 (GMT -03)
+wait_file_to_download <- function(path, time = 0.1){
+  past_size <- file.size(path)
+  Sys.sleep(time)
+  size <- file.size(path)
+  while(size != past_size | size == 0){
+    past_size <- size
+    Sys.sleep(time)
+    size <- file.size(path)
+  }
+}
+
 # Name         : Download INMET files (2)
-# Description  : download raw INMET files by station and save them at dir_path
+# Description  : download raw INMET files by station, save them at dir_path and
+# return file paths. 
 # Written by   : Rodrigo Lustosa
 # Writing date : 25 Jan 2023
 download_inmet_files_2 <- function(station_ids,date_start,date_end,dir_download){
@@ -137,7 +191,7 @@ download_inmet_files_2 <- function(station_ids,date_start,date_end,dir_download)
   dates_start <- periods$dates_start
   dates_end   <- periods$dates_end
   n_periods   <- periods$n_periods
-           
+  
   # set docker download information
   fprof <- makeFirefoxProfile(
     list(browser.download.dir = "/home/seluser/Downloads",
@@ -155,18 +209,16 @@ download_inmet_files_2 <- function(station_ids,date_start,date_end,dir_download)
   remDr$open(silent = T)
   # remDr$getStatus()
   
-  # open URL
-  remDr$navigate("https://tempo.inmet.gov.br/tabela/mapa/V0500/2023-01-01")
-  wait_inmet_page_to_load(remDr)
-  
-  # remDr$screenshot(display = TRUE)
   for(id in station_ids){
+    # open URL
+    link <- str_c("https://tempo.inmet.gov.br/tabela/mapa/", id, "/", date_end)
+    remDr$navigate(link)
+    wait_inmet_page_to_load(remDr)
+    
+    # remDr$screenshot(display = TRUE)
     for(i in 1:n_periods){
       # file name for station and period
-      file_name <- str_c(id,"_",                                  # station code
-                         "s",format(dates_start[i],"%Y%m%d"),"_", # date start
-                         "e",format(dates_end[i],"%Y%m%d"),       # date end
-                         ".csv")                                  # file extension
+      file_name     <- make_file_name(id,dates_start[i],dates_end[i])
       file_path     <- file.path(dir_data_input,file_name)
       raw_file_path <- file.path(dir_data_input,"tabela.csv") # path of download
       # download file
@@ -201,6 +253,8 @@ download_inmet_files_2 <- function(station_ids,date_start,date_end,dir_download)
         el_bCSV$clickElement()
         # el_bCSV$getElementText()  # "Baixar CSV"
         
+        wait_file_to_download(raw_file_path)
+        
         # files are downloaded with 'tabela.csv' as a name
         file.rename(raw_file_path,file_path)
       }
@@ -224,7 +278,57 @@ date_end   <- date(date_hour_end)
 # start docker
 open_docker(dir_data_input)
 
+# download
 download_inmet_files_2(station_ids,date_start,date_end,dir_data_input)
 
+# stop and remove docker
 close_docker()
+
+
+# read files --------------------------------------------------------------
+
+# dates information
+periods <- divide_date_period(date_start,date_end)
+dates_start <- periods$dates_start
+dates_end   <- periods$dates_end
+n_periods   <- periods$n_periods
+n_ids       <- length(station_ids)
+
+dados <- vector("list",n_ids)
+for(j in 1:n_ids){
+  id <- station_ids[j]
+  dados[[j]] <- vector("list",n_periods)
+  for(i in 1:n_periods){
+    # file name for station and period
+    file_name     <- make_file_name(id,dates_start[i],dates_end[i])
+    file_path     <- file.path(dir_data_input,file_name)
+    # read file
+    if(file.exists(file_path)){
+      dados[[j]][[i]] <- read_csv2(file_path)
+      # tidy header
+      names(dados[[j]][[i]]) <- rm.complex.format(names(dados[[j]][[i]]))
+      # tidy and filter data
+      dados[[j]][[i]] <- dados[[j]][[i]] %>% 
+        mutate(data = dmy_hm(paste(data, hora)),.keep="unused") %>% # merge date and hours
+        mutate(codigo = id, .before = 1) %>% 
+        filter(data >= date_hour_start & data <= date_hour_end)
+    }
+  }
+  # merge dataframes from year y
+  dados[[j]] <- bind_rows(dados[[j]])
+}
+# merge all dataframes
+dados <- bind_rows(dados)
+
+
+# write final file --------------------------------------------------------
+
+# create folder if it does not exist
+if (!file.exists(dir_data_output))
+  dir.create(dir_data_output)
+# free up unused memory
+gc()
+# write data
+path <- file.path(dir_data_output, file_output)
+write_csv(dados,path,na = "")
 
