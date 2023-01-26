@@ -29,7 +29,7 @@ date_hour_end   <- ymd_hm("2022-01-01 00:00")
 
 # code stations to be used. If empty, all stations will be selected
 # for more IDs, check: https://mapas.inmet.gov.br/
-stations_id <- c("A701","A755","A771")
+station_ids <- c("A701","A755","A771")
 
 
 # functions ---------------------------------------------------------------
@@ -136,9 +136,9 @@ for(k in 1:n_years){
   n_files <- length(filenames)
   dados[[k]] <- vector("list",n_files)
   # only stations that are required
-  if(is.null(stations_id))
+  if(is.null(station_ids))
     fs <- 1:n_files else # all stations were required (implicit by empty ids)
-      fs <- which(codigos %in% stations_id) # required stations were given
+      fs <- which(codigos %in% station_ids) # required stations were given
   
   for (f in fs){
     # unzip file f in temporary directory

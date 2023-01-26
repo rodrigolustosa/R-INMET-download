@@ -24,6 +24,10 @@ file_output <- "02_inmet.csv"
 date_hour_start <- ymd_hm("2018-01-01 00:00")
 date_hour_end   <- ymd_hm("2022-01-01 00:00")
 
+# code stations to be used
+# for more IDs, check: https://mapas.inmet.gov.br/
+station_ids <- c("A701","A755","A771","V0500")
+
 
 # functions ---------------------------------------------------------------
 
@@ -126,7 +130,7 @@ divide_date_period <- function(date_start, date_end, largest_period = 366){
 # Description  : download raw INMET files by station and save them at dir_path
 # Written by   : Rodrigo Lustosa
 # Writing date : 25 Jan 2023
-download_inmet_files_2 <- function(date_start,date_end,dir_download){
+download_inmet_files_2 <- function(station_ids,date_start,date_end,dir_download){
   
   # dates information
   periods <- divide_date_period(date_start,date_end)
@@ -156,49 +160,50 @@ download_inmet_files_2 <- function(date_start,date_end,dir_download){
   wait_inmet_page_to_load(remDr)
   
   # remDr$screenshot(display = TRUE)
-  
-  for(i in 1:n_periods){
-    # file name for station and period
-    file_name <- str_c("V0500_",                                # station code
-                       "s",format(dates_start[i],"%Y%m%d"),"_", # date start
-                       "e",format(dates_end[i],"%Y%m%d"),       # date end
-                       ".csv")                                  # file extension
-    file_path     <- file.path(dir_data_input,file_name)
-    raw_file_path <- file.path(dir_data_input,"tabela.csv") # path of download
-    # download file
-    if(!file.exists(file_path)){
-      # delete possible trash file
-      if(file.exists(raw_file_path))
-        file.remove(raw_file_path)
-      
-      # find date boxes (start and end)
-      el_datas <- remDr$findElements(using = "css", "[type = 'date']")
-      
-      # list of backspace keys equal to number of characters in a date string
-      erase_date_keys        <- as.list(rep("backspace",10))
-      names(erase_date_keys) <- rep("key",10)
-      # erase filled date values and fill with new dates 
-      el_datas[[1]]$sendKeysToElement(append(erase_date_keys,list(dates_start[i])))
-      el_datas[[2]]$sendKeysToElement(append(erase_date_keys,list(dates_end[i])))
-      
-      # remDr$screenshot(display = TRUE)
-      
-      # find button to generate new table and click on it
-      el_gtabela <- remDr$findElement(using = "tag name", "button")
-      el_gtabela$clickElement()
-      # el_gtabela$getElementText()  # "Gerar Tabela"
-      
-      wait_inmet_page_to_load(remDr)
-      
-      # remDr$screenshot(display = TRUE)
-      
-      # find button to download new generated table and click on it
-      el_bCSV <- remDr$findElement(using = "tag name", "a")
-      el_bCSV$clickElement()
-      # el_bCSV$getElementText()  # "Baixar CSV"
-      
-      # files are downloaded with 'tabela.csv' as a name
-      file.rename(raw_file_path,file_path)
+  for(id in station_ids){
+    for(i in 1:n_periods){
+      # file name for station and period
+      file_name <- str_c(id,"_",                                  # station code
+                         "s",format(dates_start[i],"%Y%m%d"),"_", # date start
+                         "e",format(dates_end[i],"%Y%m%d"),       # date end
+                         ".csv")                                  # file extension
+      file_path     <- file.path(dir_data_input,file_name)
+      raw_file_path <- file.path(dir_data_input,"tabela.csv") # path of download
+      # download file
+      if(!file.exists(file_path)){
+        # delete possible trash file
+        if(file.exists(raw_file_path))
+          file.remove(raw_file_path)
+        
+        # find date boxes (start and end)
+        el_datas <- remDr$findElements(using = "css", "[type = 'date']")
+        
+        # list of backspace keys equal to number of characters in a date string
+        erase_date_keys        <- as.list(rep("backspace",10))
+        names(erase_date_keys) <- rep("key",10)
+        # erase filled date values and fill with new dates 
+        el_datas[[1]]$sendKeysToElement(append(erase_date_keys,list(dates_start[i])))
+        el_datas[[2]]$sendKeysToElement(append(erase_date_keys,list(dates_end[i])))
+        
+        # remDr$screenshot(display = TRUE)
+        
+        # find button to generate new table and click on it
+        el_gtabela <- remDr$findElement(using = "tag name", "button")
+        el_gtabela$clickElement()
+        # el_gtabela$getElementText()  # "Gerar Tabela"
+        
+        wait_inmet_page_to_load(remDr)
+        
+        # remDr$screenshot(display = TRUE)
+        
+        # find button to download new generated table and click on it
+        el_bCSV <- remDr$findElement(using = "tag name", "a")
+        el_bCSV$clickElement()
+        # el_bCSV$getElementText()  # "Baixar CSV"
+        
+        # files are downloaded with 'tabela.csv' as a name
+        file.rename(raw_file_path,file_path)
+      }
     }
   }
   
@@ -219,7 +224,7 @@ date_end   <- date(date_hour_end)
 # start docker
 open_docker(dir_data_input)
 
-download_inmet_files_2(date_start,date_end,dir_data_input)
+download_inmet_files_2(station_ids,date_start,date_end,dir_data_input)
 
 close_docker()
 
