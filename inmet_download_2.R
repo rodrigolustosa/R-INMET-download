@@ -265,6 +265,52 @@ download_inmet_files_2 <- function(station_ids,date_start,date_end,dir_download)
   remDr$close()
 }
 
+# Name         : Read and tidy up INMET files (2)
+# Description  : Read raw INMET files by station, merge and tidy up
+# Written by   : Rodrigo Lustosa
+# Writing date : 26 Jan 2023 13:31 (GMT -03)
+read_n_tidy_inmet_files_2 <- function(station_ids,date_hour_start,date_hour_end,
+                                      dir_read){
+  # dates information
+  date_start <- date(date_hour_start)
+  date_end   <- date(date_hour_end)
+  periods <- divide_date_period(date_start,date_end)
+  dates_start <- periods$dates_start
+  dates_end   <- periods$dates_end
+  n_periods   <- periods$n_periods
+  n_ids       <- length(station_ids)
+  
+  dados <- vector("list",n_ids)
+  for(j in 1:n_ids){
+    id <- station_ids[j]
+    dados[[j]] <- vector("list",n_periods)
+    for(i in 1:n_periods){
+      # file name for station and period
+      file_name     <- make_file_name(id,dates_start[i],dates_end[i])
+      file_path     <- file.path(dir_read,file_name)
+      # read file
+      if(file.exists(file_path)){
+        suppressMessages({
+          dados[[j]][[i]] <- read_csv2(file_path)
+        })
+        # tidy header
+        names(dados[[j]][[i]]) <- rm.complex.format(names(dados[[j]][[i]]))
+        # tidy and filter data
+        dados[[j]][[i]] <- dados[[j]][[i]] %>% 
+          mutate(data = dmy_hm(paste(data, hora)),.keep="unused") %>% # merge date and hours
+          mutate(codigo = id, .before = 1) %>% 
+          filter(data >= date_hour_start & data <= date_hour_end)
+      }
+    }
+    # merge dataframes from year y
+    dados[[j]] <- bind_rows(dados[[j]])
+  }
+  # merge all dataframes
+  dados <- bind_rows(dados)
+  
+  return(dados)
+}
+
 
 # data information --------------------------------------------------------
 
@@ -287,38 +333,8 @@ close_docker()
 
 # read files --------------------------------------------------------------
 
-# dates information
-periods <- divide_date_period(date_start,date_end)
-dates_start <- periods$dates_start
-dates_end   <- periods$dates_end
-n_periods   <- periods$n_periods
-n_ids       <- length(station_ids)
-
-dados <- vector("list",n_ids)
-for(j in 1:n_ids){
-  id <- station_ids[j]
-  dados[[j]] <- vector("list",n_periods)
-  for(i in 1:n_periods){
-    # file name for station and period
-    file_name     <- make_file_name(id,dates_start[i],dates_end[i])
-    file_path     <- file.path(dir_data_input,file_name)
-    # read file
-    if(file.exists(file_path)){
-      dados[[j]][[i]] <- read_csv2(file_path)
-      # tidy header
-      names(dados[[j]][[i]]) <- rm.complex.format(names(dados[[j]][[i]]))
-      # tidy and filter data
-      dados[[j]][[i]] <- dados[[j]][[i]] %>% 
-        mutate(data = dmy_hm(paste(data, hora)),.keep="unused") %>% # merge date and hours
-        mutate(codigo = id, .before = 1) %>% 
-        filter(data >= date_hour_start & data <= date_hour_end)
-    }
-  }
-  # merge dataframes from year y
-  dados[[j]] <- bind_rows(dados[[j]])
-}
-# merge all dataframes
-dados <- bind_rows(dados)
+dados <- read_n_tidy_inmet_files_2(station_ids,date_hour_start,date_hour_end,
+                                   dir_data_input)
 
 
 # write final file --------------------------------------------------------
