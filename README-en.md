@@ -1,8 +1,3 @@
-<p align="center">
-![](https://img.shields.io/badge/version-0.3.0-green)
-</p>
-
-
 # R-INMET-download
 [![en](https://img.shields.io/badge/lang-en-red)](https://github.com/rodrigolustosa/R-INMET-download/blob/main/README-en.md)
 [![pt-br](https://img.shields.io/badge/lang-pt--br-blue)](https://github.com/rodrigolustosa/R-INMET-download/blob/main/README.md)
@@ -55,3 +50,6 @@ to start a docker (where `dir_path` should be replaced by the absolute path your
 sudo docker stop rselenium_inmet; sudo docker rm rselenium_inmet
 ```
 to stop and remove the docker. If any problem occurs to those functions in R, you can run those commands in your terminal in place of the R functions. As with Script 1, fill the date and hour of start and end you want and the station IDs (you can search more stations using the INMET portal) then run the script. Your files will be downloaded inside your working directory. 
+
+[![version](https://img.shields.io/badge/version-0.3.0-green)](https://github.com/rodrigolustosa/R-INMET-download/releases/tag/v0.3.0)
+
