@@ -1,4 +1,11 @@
+<p align="center">
+![](https://img.shields.io/badge/version-0.3.0-green)
+</p>
+
+
 # R-INMET-download
+[![en](https://img.shields.io/badge/lang-en-red)](https://github.com/rodrigolustosa/R-INMET-download/blob/main/README-en.md)
+[![pt-br](https://img.shields.io/badge/lang-pt--br-blue)](https://github.com/rodrigolustosa/R-INMET-download/blob/main/README.md)
 
 Download meteorological data from the Instituto Nacional de Meteorologia (INMET) in R language.
 
