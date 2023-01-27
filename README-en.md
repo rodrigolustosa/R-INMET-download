@@ -6,7 +6,7 @@ Download meteorological data from the Instituto Nacional de Meteorologia (INMET)
 
 ## General description
 
-This repository can download INMET data by two different ways (with script [`inmet_download_1.R`](https://github.com/rodrigolustosa/R-INMET-download/blob/main/inmet_download_1.R) and [`inmet_download_2.R`](https://github.com/rodrigolustosa/R-INMET-download/blob/main/inmet_download_2.R)) using the [INMET portal](https://portal.inmet.gov.br/). Overall `inmet_download_1.R` is **easier to use** but can't access some data and might download a lot of data that you don't want and `inmet_download_2.R` can **access more data** but won't work in Windows without some tweaks and the download velocity is lower. Bellow is summary of the main conditions.
+This repository can download INMET data by two different ways (with script [`inmet_download_1.R`](https://github.com/rodrigolustosa/R-INMET-download/blob/main/inmet_download_1.R) and [`inmet_download_2.R`](https://github.com/rodrigolustosa/R-INMET-download/blob/main/inmet_download_2.R)) using the [INMET portal](https://portal.inmet.gov.br/). Overall `inmet_download_1.R` is **easier to use** but can't access some data and might download a lot of data that you don't want and `inmet_download_2.R` can **access more data** (e.g. from the CIIAGRO) but won't work in Windows without some tweaks and the download velocity is lower. Bellow is summary of the main conditions.
 
 |    |  script 1 |  script 2 |
 |----------|:------:|:------:|
