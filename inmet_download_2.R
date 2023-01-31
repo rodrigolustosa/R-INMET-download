@@ -184,13 +184,15 @@ wait_file_to_download <- function(path, time = 0.1){
 # return file paths. 
 # Written by   : Rodrigo Lustosa
 # Writing date : 25 Jan 2023
-download_inmet_files_2 <- function(station_ids,date_start,date_end,dir_download){
+download_inmet_files_2 <- function(station_ids,date_start,date_end,dir_download,
+                                   silent = FALSE){
   
   # dates information
   periods <- divide_date_period(date_start,date_end)
   dates_start <- periods$dates_start
   dates_end   <- periods$dates_end
   n_periods   <- periods$n_periods
+  n_ids       <- length(station_ids)
   
   # set docker download information
   fprof <- makeFirefoxProfile(
@@ -206,23 +208,36 @@ download_inmet_files_2 <- function(station_ids,date_start,date_end,dir_download)
     browserName = "firefox",
     extraCapabilities = fprof
   )
-  remDr$open(silent = T)
   # remDr$getStatus()
   
-  for(id in station_ids){
-    # open URL
-    link <- str_c("https://tempo.inmet.gov.br/tabela/mapa/", id, "/", date_end)
-    remDr$navigate(link)
-    wait_inmet_page_to_load(remDr)
+  for(id in 1:n_ids){
+    navigate_done <- FALSE
+    
+    # start progress bar
+    if(!silent){
+      cat(str_c("\nDownloading ",station_ids[id],":\n"))
+      pb = txtProgressBar(min = 1, max = n_periods, initial = 1, style = 3) 
+    }
     
     # remDr$screenshot(display = TRUE)
     for(i in 1:n_periods){
       # file name for station and period
-      file_name     <- make_file_name(id,dates_start[i],dates_end[i])
+      file_name     <- make_file_name(station_ids[id],dates_start[i],dates_end[i])
       file_path     <- file.path(dir_data_input,file_name)
       raw_file_path <- file.path(dir_data_input,"tabela.csv") # path of download
+      
       # download file
       if(!file.exists(file_path)){
+        # open URL
+        if(!navigate_done){
+          remDr$open(silent = T)
+          link <- str_c("https://tempo.inmet.gov.br/tabela/mapa/", 
+                        station_ids[id], "/", date_end)
+          remDr$navigate(link)
+          wait_inmet_page_to_load(remDr)
+          navigate_done <- TRUE
+        }
+        
         # delete possible trash file
         if(file.exists(raw_file_path))
           file.remove(raw_file_path)
@@ -258,11 +273,21 @@ download_inmet_files_2 <- function(station_ids,date_start,date_end,dir_download)
         # files are downloaded with 'tabela.csv' as a name
         file.rename(raw_file_path,file_path)
       }
+      
+      # update progress bar
+      if(!silent)
+        setTxtProgressBar(pb,i)
+      
     }
+    # close progress bar
+    if(!silent)
+      close(pb)
+    
+    # close remote driver if it was opened
+    if(navigate_done)
+      remDr$close()
   }
   
-  # close remote driver
-  remDr$close()
 }
 
 # Name         : Read and tidy up INMET files (2)

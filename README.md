@@ -15,7 +15,7 @@ Esse repositório consegue baixar dados do INMET de duas formas diferentes (com 
 | **Configuração**                  | Apenas bibliotecas do R :heavy_check_mark:            | Docker e bibliotecas do R |
 | **Tempo para que os dados estejam disponíveis**       | Pode demorar vários dias         | Normalmente no mesmo dia :heavy_check_mark:|
 | **Menor quantidade de dados possível por arquivo baixado** (Obs.: No final ambos retornam um único arquivo com somente os dados requisitados)  | Todas as estações automáticas do INMET, por ano, em um mesmo aquivo ZIP (~100 MB por arquivo) | Arquivo CSV para cada estação e dia (~3.7 KB) :heavy_check_mark: |
-| **Velocidade de Download**                   | Rádipo :heavy_check_mark:                         | Mediano |
+| **Velocidade de Download**                   | Rápido :heavy_check_mark:                         | Mediano |
 
 No geral, `inmet_download_1.R` é recomendável para Windows, caso serão utilizadas muitas estações ou se não pretende-se instalar o Docker.
 
@@ -51,5 +51,5 @@ sudo docker stop rselenium_inmet; sudo docker rm rselenium_inmet
 ```
 para parar e remover o docker anteriormente criado. Se qualquer problema ocorrer com essas funções no R, você pode executar esses comandos no terminal ao invés de executar a função no R. Como no script 1, preencha as datas e horas de início e fim e os códigos das estações e então execute o script. Seus arquivos serão baixados no seu diretório de trabalho. 
 
-[![version](https://img.shields.io/badge/version-0.3.0-green)](https://github.com/rodrigolustosa/R-INMET-download/releases/tag/v0.3.0)
+[![version](https://img.shields.io/badge/version-0.4.0-green)](https://github.com/rodrigolustosa/R-INMET-download/releases/tag/v0.4.0)
 
