@@ -206,14 +206,10 @@ download_inmet_files_2 <- function(station_ids,date_start,date_end,dir_download)
     browserName = "firefox",
     extraCapabilities = fprof
   )
-  remDr$open(silent = T)
   # remDr$getStatus()
   
   for(id in station_ids){
-    # open URL
-    link <- str_c("https://tempo.inmet.gov.br/tabela/mapa/", id, "/", date_end)
-    remDr$navigate(link)
-    wait_inmet_page_to_load(remDr)
+    navigate_done <- FALSE
     
     # remDr$screenshot(display = TRUE)
     for(i in 1:n_periods){
@@ -221,8 +217,18 @@ download_inmet_files_2 <- function(station_ids,date_start,date_end,dir_download)
       file_name     <- make_file_name(id,dates_start[i],dates_end[i])
       file_path     <- file.path(dir_data_input,file_name)
       raw_file_path <- file.path(dir_data_input,"tabela.csv") # path of download
+      
       # download file
       if(!file.exists(file_path)){
+        # open URL
+        if(!navigate_done){
+          remDr$open(silent = T)
+          link <- str_c("https://tempo.inmet.gov.br/tabela/mapa/", id, "/", date_end)
+          remDr$navigate(link)
+          wait_inmet_page_to_load(remDr)
+          navigate_done <- TRUE
+        }
+        
         # delete possible trash file
         if(file.exists(raw_file_path))
           file.remove(raw_file_path)
@@ -259,10 +265,11 @@ download_inmet_files_2 <- function(station_ids,date_start,date_end,dir_download)
         file.rename(raw_file_path,file_path)
       }
     }
+    # close remote driver
+    if(navigate_done)
+      remDr$close()
   }
   
-  # close remote driver
-  remDr$close()
 }
 
 # Name         : Read and tidy up INMET files (2)
