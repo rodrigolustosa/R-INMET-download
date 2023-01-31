@@ -216,7 +216,7 @@ download_inmet_files_2 <- function(station_ids,date_start,date_end,dir_download,
     # start progress bar
     if(!silent){
       cat(str_c("\nDownloading ",station_ids[id],":\n"))
-      pb = txtProgressBar(min = 1, max = n_periods, initial = 1, style = 3) 
+      pb = txtProgressBar(min = 0, max = n_periods, initial = 0, style = 3) 
     }
     
     # remDr$screenshot(display = TRUE)
