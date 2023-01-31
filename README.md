@@ -51,5 +51,5 @@ sudo docker stop rselenium_inmet; sudo docker rm rselenium_inmet
 ```
 para parar e remover o docker anteriormente criado. Se qualquer problema ocorrer com essas funções no R, você pode executar esses comandos no terminal ao invés de executar a função no R. Como no script 1, preencha as datas e horas de início e fim e os códigos das estações e então execute o script. Seus arquivos serão baixados no seu diretório de trabalho. 
 
-[![version](https://img.shields.io/badge/version-0.3.0-green)](https://github.com/rodrigolustosa/R-INMET-download/releases/tag/v0.3.0)
+[![version](https://img.shields.io/badge/version-0.4.0-green)](https://github.com/rodrigolustosa/R-INMET-download/releases/tag/v0.4.0)
 
