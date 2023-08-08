@@ -77,13 +77,17 @@ is.path.abs <- function(path){
 # Description  : Search for date boxes to know if page is loaded or not
 # Written by   : Rodrigo Lustosa
 # Writing date : 25 Jan 2023 12:57 (GMT -03)
-wait_inmet_page_to_load <- function(remote_driver){
+wait_inmet_page_to_load <- function(remote_driver, maxtime = 120){
   el_test <- list()
   el_test <- remote_driver$findElements(using = "css", "[type = 'date']")
-  while(is_empty(el_test)){
+  start <- Sys.time()
+  now <- Sys.time()
+  while(is_empty(el_test) & now - start < maxtime){
     Sys.sleep(1)
     el_test <- remote_driver$findElements(using = "css", "[type = 'date']")
+    now <- Sys.time()
   }
+  return(now - start < maxtime)
 }
 
 # Name         : Open Docker
@@ -229,13 +233,12 @@ download_inmet_files_2 <- function(station_ids,date_start,date_end,dir_download,
       # download file
       if(!file.exists(file_path)){
         # open URL
-        if(!navigate_done){
+        while(!navigate_done){
           remDr$open(silent = T)
           link <- str_c("https://tempo.inmet.gov.br/tabela/mapa/", 
                         station_ids[id], "/", date_end)
           remDr$navigate(link)
-          wait_inmet_page_to_load(remDr)
-          navigate_done <- TRUE
+          navigate_done <- wait_inmet_page_to_load(remDr)
         }
         
         # delete possible trash file
@@ -259,7 +262,7 @@ download_inmet_files_2 <- function(station_ids,date_start,date_end,dir_download,
         el_gtabela$clickElement()
         # el_gtabela$getElementText()  # "Gerar Tabela"
         
-        wait_inmet_page_to_load(remDr)
+        wait_inmet_page_to_load(remDr, maxtime = Inf)
         
         # remDr$screenshot(display = TRUE)
         
