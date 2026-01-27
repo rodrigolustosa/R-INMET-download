@@ -15,6 +15,7 @@ library(stringr)
 library(stringi)
 library(lubridate)
 library(RSelenium)
+library(base64enc)
 
 # directory and file names
 dir_data_input  <- "database/aux/csv_files_by_station_and_period"
