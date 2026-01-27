@@ -43,7 +43,7 @@ Abra `inmet_download_1.R`, preencha as datas e horas de início e fim e os códi
 
 Antes de executar o `inmet_download_2.R`, é necessário instalar o docker. Siga as instruções dadas na [página do docker](https://docs.docker.com/engine/install/ubuntu/) (programa separado do R). Após instalado, agora você pode executar `inmet_download_2.R`. Nesse código há duas funções que enviam comandos ao terminal do Linux, a `open_docker` e a `close_docker`. Elas enviam ao terminal, respectivamente:
 ```
-sudo docker run --name rselenium_inmet -d -p 4445:4444 -v dir_path:/home/seluser/Downloads:rw -d selenium/standalone-firefox:2.53.1
+sudo docker run --name rselenium_inmet -d -p 4445:4444 -v dir_path:/home/seluser/Downloads:rw -d selenium/standalone-firefox:4.1.0
 ```
 para iniciar um docker (onde `dir_path` precisa ser substituído pelo endereço absoluto onde os dados serão baixados) e
 ```
@@ -51,5 +51,5 @@ sudo docker stop rselenium_inmet; sudo docker rm rselenium_inmet
 ```
 para parar e remover o docker anteriormente criado. Se qualquer problema ocorrer com essas funções no R, você pode executar esses comandos no terminal ao invés de executar a função no R. Como no script 1, preencha as datas e horas de início e fim e os códigos das estações e então execute o script. Seus arquivos serão baixados no seu diretório de trabalho. 
 
-[![version](https://img.shields.io/badge/version-0.4.0-green)](https://github.com/rodrigolustosa/R-INMET-download/releases/tag/v0.4.0)
+[![version](https://img.shields.io/badge/version-0.5.1-green)](https://github.com/rodrigolustosa/R-INMET-download/releases/tag/v0.5.1)
 
