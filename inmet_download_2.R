@@ -78,14 +78,15 @@ is.path.abs <- function(path){
 # Description  : Search for date boxes to know if page is loaded or not
 # Written by   : Rodrigo Lustosa
 # Writing date : 25 Jan 2023 12:57 (GMT -03)
+# Update date  : 27 Jan 2026
 wait_inmet_page_to_load <- function(remote_driver, maxtime = 120){
   el_test <- list()
-  el_test <- remote_driver$findElements(using = "css", "[type = 'date']")
+  el_test <- remote_driver$findElements(using = "tag name", "a")
   start <- Sys.time()
   now <- Sys.time()
   while(is_empty(el_test) & now - start < maxtime){
     Sys.sleep(1)
-    el_test <- remote_driver$findElements(using = "css", "[type = 'date']")
+    el_test <- remote_driver$findElements(using = "tag name", "a")
     now <- Sys.time()
   }
   return(now - start < maxtime)
