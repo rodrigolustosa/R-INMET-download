@@ -15,6 +15,7 @@ library(stringr)
 library(stringi)
 library(lubridate)
 library(RSelenium)
+library(base64enc)
 
 # directory and file names
 dir_data_input  <- "database/aux/csv_files_by_station_and_period"
@@ -74,23 +75,29 @@ is.path.abs <- function(path){
 }
 
 # Name         : Wait INMET page to load
-# Description  : Search for date boxes to know if page is loaded or not
+# Description  : Search for page elements to know if page is loaded or not
 # Written by   : Rodrigo Lustosa
 # Writing date : 25 Jan 2023 12:57 (GMT -03)
-wait_inmet_page_to_load <- function(remote_driver){
+# Update date  : 27 Jan 2026
+wait_inmet_page_to_load <- function(remote_driver, maxtime = 120){
   el_test <- list()
-  el_test <- remote_driver$findElements(using = "css", "[type = 'date']")
-  while(is_empty(el_test)){
+  el_test <- remote_driver$findElements(using = "tag name", "a")
+  start <- Sys.time()
+  now <- Sys.time()
+  while(is_empty(el_test) & now - start < maxtime){
     Sys.sleep(1)
-    el_test <- remote_driver$findElements(using = "css", "[type = 'date']")
+    el_test <- remote_driver$findElements(using = "tag name", "a")
+    now <- Sys.time()
   }
+  return(now - start < maxtime)
 }
 
 # Name         : Open Docker
-# Description  : Open a docker with Selenium 2.53.1, firefox as browser, a 
+# Description  : Open a docker with Selenium 4.1.0, firefox as browser, a 
 # connection with dir_path, and with name rselenium_inmet
 # Written by   : Rodrigo Lustosa
 # Writing date : 25 Jan 2023 14:31 (GMT -03)
+# Update date  : 27 Jan 2026
 open_docker <- function(dir_path) {
   # alternative in the terminal (replace DIR_DATA_INPUT, must be absolute path):
   # sudo docker run -d -p 4445:4444 -v DIR_DATA_INPUT:/home/seluser/Downloads:rw -d selenium/standalone-firefox:2.53.1
@@ -105,7 +112,7 @@ open_docker <- function(dir_path) {
   # terminal command
   cmd <- str_c("sudo -kS docker run --name rselenium_inmet -d -p 4445:4444 -v ",
                dir_path, # path of connection in the host with docker
-               ":/home/seluser/Downloads:rw -d selenium/standalone-firefox:2.53.1")
+               ":/home/seluser/Downloads:rw -d selenium/standalone-firefox:4.1.0")
   
   # start docker
   docker_id <- system(cmd, intern = TRUE,
@@ -184,6 +191,7 @@ wait_file_to_download <- function(path, time = 0.1){
 # return file paths. 
 # Written by   : Rodrigo Lustosa
 # Writing date : 25 Jan 2023
+# Update date  : 27 Jan 2026
 download_inmet_files_2 <- function(station_ids,date_start,date_end,dir_download,
                                    silent = FALSE){
   
@@ -194,13 +202,51 @@ download_inmet_files_2 <- function(station_ids,date_start,date_end,dir_download,
   n_periods   <- periods$n_periods
   n_ids       <- length(station_ids)
   
-  # set docker download information
-  fprof <- makeFirefoxProfile(
-    list(browser.download.dir = "/home/seluser/Downloads",
-         browser.download.folderList = 2L,
-         browser.download.manager.showWhenStarting = FALSE,
-         browser.helperApps.neverAsk.saveToDisk = "text/csv"))
-
+  # Javascript Script to download Blob URL content
+  js_downloader <- "
+  var url = arguments[0];
+  var callback = arguments[1];
+  
+  var xhr = new XMLHttpRequest();
+  xhr.open('GET', url, true); 
+  xhr.responseType = 'blob'; // Important: treat it as binary file
+  
+  xhr.onload = function() {
+      if (this.status === 200) {
+          var reader = new FileReader();
+          reader.readAsDataURL(this.response); 
+          reader.onloadend = function() {
+              callback(reader.result); // return the complete base64 to R
+          }
+      } else {
+          callback(null);
+      }
+  };
+  xhr.send();
+"
+  
+  fprof <- makeFirefoxProfile(list(
+    # 1. set docker download information
+    "browser.download.dir" = "/home/seluser/Downloads",
+    "browser.download.folderList" = 2L,
+    # 2. deactivate all questions
+    "browser.download.manager.showWhenStarting" = FALSE,
+    "browser.helperApps.alwaysAsk.force" = FALSE,
+    "browser.download.manager.useWindow" = FALSE,
+    "browser.download.manager.focusWhenStarting" = FALSE,
+    "browser.download.manager.showAlertOnComplete" = FALSE,
+    # 3. MIME Typeslist
+    "browser.helperApps.neverAsk.saveToDisk" = paste0(
+      "text/plain,text/csv,text/xml,application/xml,",
+      "application/vnd.ms-excel,application/x-excel,application/excel,",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,",
+      "application/octet-stream,application/force-download,binary/octet-stream,",
+      "application/pdf,application/zip,application/x-zip-compressed"
+    ),
+    # 4. for downloads via JS (Blobs)
+    "pdfjs.disabled" = TRUE  # avoid PDF preview
+  ))
+  
   # start remote Driver
   remDr <- remoteDriver(
     remoteServerAddr = "localhost",
@@ -216,7 +262,7 @@ download_inmet_files_2 <- function(station_ids,date_start,date_end,dir_download,
     # start progress bar
     if(!silent){
       cat(str_c("\nDownloading ",station_ids[id],":\n"))
-      pb = txtProgressBar(min = 1, max = n_periods, initial = 1, style = 3) 
+      pb = txtProgressBar(min = 0, max = n_periods, initial = 0, style = 3) 
     }
     
     # remDr$screenshot(display = TRUE)
@@ -229,13 +275,12 @@ download_inmet_files_2 <- function(station_ids,date_start,date_end,dir_download,
       # download file
       if(!file.exists(file_path)){
         # open URL
-        if(!navigate_done){
+        while(!navigate_done){
           remDr$open(silent = T)
           link <- str_c("https://tempo.inmet.gov.br/tabela/mapa/", 
                         station_ids[id], "/", date_end)
           remDr$navigate(link)
-          wait_inmet_page_to_load(remDr)
-          navigate_done <- TRUE
+          navigate_done <- wait_inmet_page_to_load(remDr)
         }
         
         # delete possible trash file
@@ -249,26 +294,43 @@ download_inmet_files_2 <- function(station_ids,date_start,date_end,dir_download,
         erase_date_keys        <- as.list(rep("backspace",10))
         names(erase_date_keys) <- rep("key",10)
         # erase filled date values and fill with new dates 
-        el_datas[[1]]$sendKeysToElement(append(erase_date_keys,list(dates_start[i])))
-        el_datas[[2]]$sendKeysToElement(append(erase_date_keys,list(dates_end[i])))
+        el_datas[[1]]$sendKeysToElement(erase_date_keys)
+        el_datas[[2]]$sendKeysToElement(erase_date_keys)
+        el_datas[[1]]$sendKeysToElement(list(dates_start[i]))
+        el_datas[[2]]$sendKeysToElement(list(dates_end[i]))
         
         # remDr$screenshot(display = TRUE)
         
         # find button to generate new table and click on it
         el_gtabela <- remDr$findElement(using = "tag name", "button")
+        Sys.sleep(0.5)
         el_gtabela$clickElement()
         # el_gtabela$getElementText()  # "Gerar Tabela"
         
-        wait_inmet_page_to_load(remDr)
+        wait_inmet_page_to_load(remDr, maxtime = Inf)
         
         # remDr$screenshot(display = TRUE)
         
-        # find button to download new generated table and click on it
+        # find button to download new generated table and get its link
         el_bCSV <- remDr$findElement(using = "tag name", "a")
-        el_bCSV$clickElement()
+        Sys.sleep(0.5)
+        link_blob <- el_bCSV$getElementAttribute("href")[[1]]
         # el_bCSV$getElementText()  # "Baixar CSV"
         
-        wait_file_to_download(raw_file_path)
+        # run JS script to get the data
+        raw_content <- remDr$executeAsyncScript(js_downloader, list(link_blob))[[1]]
+        
+        # Remove header "data:application/octet-stream;base64,"
+        clean_content <- sub("^data:.*;base64,", "", raw_content)
+        
+        # decode
+        final_data <- base64decode(clean_content)
+        csv_txt <- rawToChar(final_data)
+        
+        # save file
+        con <- file(raw_file_path)
+        writeLines(csv_txt, con)
+        close(con)
         
         # files are downloaded with 'tabela.csv' as a name
         file.rename(raw_file_path,file_path)
