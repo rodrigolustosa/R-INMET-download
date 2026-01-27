@@ -100,7 +100,7 @@ wait_inmet_page_to_load <- function(remote_driver, maxtime = 120){
 # Update date  : 27 Jan 2026
 open_docker <- function(dir_path) {
   # alternative in the terminal (replace DIR_DATA_INPUT, must be absolute path):
-  # sudo docker run -d -p 4445:4444 -v DIR_DATA_INPUT:/home/seluser/Downloads:rw -d selenium/standalone-firefox:2.53.1
+  # sudo docker run -d -p 4445:4444 -v DIR_DATA_INPUT:/home/seluser/Downloads:rw -d selenium/standalone-firefox:4.1.0
   
   # create folder if it does not exist
   if (!file.exists(dir_path))
