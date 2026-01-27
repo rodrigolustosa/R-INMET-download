@@ -75,7 +75,7 @@ is.path.abs <- function(path){
 }
 
 # Name         : Wait INMET page to load
-# Description  : Search for date boxes to know if page is loaded or not
+# Description  : Search for page elements to know if page is loaded or not
 # Written by   : Rodrigo Lustosa
 # Writing date : 25 Jan 2023 12:57 (GMT -03)
 # Update date  : 27 Jan 2026
@@ -93,10 +93,11 @@ wait_inmet_page_to_load <- function(remote_driver, maxtime = 120){
 }
 
 # Name         : Open Docker
-# Description  : Open a docker with Selenium 2.53.1, firefox as browser, a 
+# Description  : Open a docker with Selenium 4.1.0, firefox as browser, a 
 # connection with dir_path, and with name rselenium_inmet
 # Written by   : Rodrigo Lustosa
 # Writing date : 25 Jan 2023 14:31 (GMT -03)
+# Update date  : 27 Jan 2026
 open_docker <- function(dir_path) {
   # alternative in the terminal (replace DIR_DATA_INPUT, must be absolute path):
   # sudo docker run -d -p 4445:4444 -v DIR_DATA_INPUT:/home/seluser/Downloads:rw -d selenium/standalone-firefox:2.53.1
@@ -111,7 +112,7 @@ open_docker <- function(dir_path) {
   # terminal command
   cmd <- str_c("sudo -kS docker run --name rselenium_inmet -d -p 4445:4444 -v ",
                dir_path, # path of connection in the host with docker
-               ":/home/seluser/Downloads:rw -d selenium/standalone-firefox:2.53.1")
+               ":/home/seluser/Downloads:rw -d selenium/standalone-firefox:4.1.0")
   
   # start docker
   docker_id <- system(cmd, intern = TRUE,
